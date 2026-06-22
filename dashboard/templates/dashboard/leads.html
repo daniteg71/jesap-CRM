@@ -73,6 +73,13 @@
         <p style="margin:4px 0 0; color:#64748B; font-size: 14px;">Pipeline business development sincronizzata con Google Sheet</p>
       </div>
       <div style="display:flex; gap: 8px;">
+        {% if is_editor %}
+          <a href="{% url 'lead_create' %}"
+             style="background:#6366F1;color:#fff;padding:8px 16px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px;">
+             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+             Nuova Lead
+          </a>
+        {% endif %}
         <a href="https://docs.google.com/spreadsheets/d/1jqMgYV6FqMIFCHPbcJLvJV3oMOcQ9v44M2Vvuf5qh5w/edit"
            target="_blank" rel="noopener"
            style="background:#fff;border:1px solid #E5E7EB;color:#0F172A;padding:8px 14px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
@@ -252,6 +259,21 @@
                         </li>
                       {% endfor %}
                     </ul>
+                  </div>
+                {% endif %}
+
+                {% if is_editor %}
+                  <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #E5E7EB; display: flex; gap: 10px; justify-content: flex-end;">
+                    <a href="{% url 'lead_update' l.lead_id %}"
+                       style="background:#fff;border:1px solid #CBD5E1;color:#0F172A;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      Modifica
+                    </a>
+                    <a href="{% url 'lead_delete' l.lead_id %}"
+                       style="background:#fff;border:1px solid #FCA5A5;color:#B91C1C;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
+                      Elimina
+                    </a>
                   </div>
                 {% endif %}
               </div>

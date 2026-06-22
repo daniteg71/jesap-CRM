@@ -11,6 +11,9 @@ urlpatterns = [
     # Dashboard Pages
     path('', views.home, name='home'),
     path('leads/', views.leads, name='leads'),
+    path('leads/nuova/', views.lead_create, name='lead_create'),
+    path('leads/<str:pk>/modifica/', views.lead_update, name='lead_update'),
+    path('leads/<str:pk>/elimina/', views.lead_delete, name='lead_delete'),
     path('progetti/', views.progetti, name='progetti'),
     path('partnerships/', views.partnerships, name='partnerships'),
 

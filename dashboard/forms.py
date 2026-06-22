@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import PasswordResetForm
 from django import forms
-from .models import Partnership, Progetti
+from .models import Partnership, Progetti, Lead
 from . import choices as ch
 from datetime import datetime
 
@@ -759,6 +759,198 @@ class ProgettoForm(forms.ModelForm):
         if anno <= 2010:
             raise forms.ValidationError('Il campo Anno deve essere maggiore di 2010.')
         return anno
+
+
+# ============================================================
+# LEAD (BD pipeline)
+# ============================================================
+class LeadForm(forms.ModelForm):
+    """
+    Form CRUD per Lead BD.
+    PK `lead_id` auto-generata in create (formato LEAD-YYYYMMDD-HHMMSS-N)
+    e readonly in update.
+    """
+
+    # Forecasting: input semplice numero, parse stesso pattern di ProgettoForm
+    valore_stimato_input = forms.CharField(
+        required=False,
+        label='Valore stimato (€)',
+        help_text='Solo il numero (es. 880 o 1.234,56)',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'inputmode': 'decimal', 'placeholder': 'Es: 880'}),
+    )
+
+    fase_attuale = forms.ChoiceField(
+        choices=ch.LEAD_FASE_CHOICES, required=False, label='Fase pipeline',
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+    stato_lead = forms.ChoiceField(
+        choices=ch.LEAD_STATO_CHOICES, required=False, label='Stato lead',
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+    stato_contratto = forms.ChoiceField(
+        choices=ch.LEAD_CONTRATTO_CHOICES, required=False, label='Stato contratto',
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+    priorita = forms.ChoiceField(
+        choices=ch.LEAD_PRIORITA_CHOICES, required=False, label='Priorità',
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+
+    class Meta:
+        model = Lead
+        fields = [
+            'lead_id',
+            'data_primo_contatto',
+            'azienda', 'titolare_azienda',
+            'referente', 'nome_referente', 'cognome_referente', 'email_referente', 'telefono',
+            'prodotto_servizio', 'area', 'owner',
+            'fase_attuale', 'stato_lead', 'stato_contratto', 'priorita',
+            'probabilita',
+            'prossima_azione', 'data_prossima_azione',
+            'drive_folder_id', 'link_cartella_drive',
+        ]
+        labels = {
+            'lead_id': 'Lead ID',
+            'data_primo_contatto': 'Data primo contatto',
+            'azienda': 'Azienda / Startup-PMI',
+            'titolare_azienda': 'Titolare azienda',
+            'referente': 'Referente (full name)',
+            'nome_referente': 'Nome referente',
+            'cognome_referente': 'Cognome referente',
+            'email_referente': 'Email referente',
+            'telefono': 'Telefono',
+            'prodotto_servizio': 'Prodotto / Servizio',
+            'area': 'Area (es. "M&C, HR")',
+            'owner': 'Owner / PM',
+            'probabilita': 'Probabilità (0-100)',
+            'prossima_azione': 'Prossima azione',
+            'data_prossima_azione': 'Data prossima azione',
+            'drive_folder_id': 'Drive Folder ID',
+            'link_cartella_drive': 'Link cartella Drive',
+        }
+        widgets = {
+            'lead_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'LEAD-YYYYMMDD-HHMMSS-N (auto)'}),
+            'data_primo_contatto': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'azienda': forms.TextInput(attrs={'class': 'form-control'}),
+            'titolare_azienda': forms.TextInput(attrs={'class': 'form-control'}),
+            'referente': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome Cognome'}),
+            'nome_referente': forms.TextInput(attrs={'class': 'form-control'}),
+            'cognome_referente': forms.TextInput(attrs={'class': 'form-control'}),
+            'email_referente': forms.EmailInput(attrs={'class': 'form-control'}),
+            'telefono': forms.TextInput(attrs={'class': 'form-control'}),
+            'prodotto_servizio': forms.TextInput(attrs={'class': 'form-control'}),
+            'area': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'CSV multi-area: M&C, HR'}),
+            'owner': forms.TextInput(attrs={'class': 'form-control'}),
+            'probabilita': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'max': 100, 'inputmode': 'numeric'}),
+            'prossima_azione': forms.TextInput(attrs={'class': 'form-control'}),
+            'data_prossima_azione': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'drive_folder_id': forms.TextInput(attrs={'class': 'form-control'}),
+            'link_cartella_drive': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://drive.google.com/...'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        instance = kwargs.get('instance')
+        is_creation = instance is None or not (instance.lead_id or '').strip()
+
+        if is_creation:
+            # PK auto-generata: nasconde campo
+            self.fields.pop('lead_id', None)
+        else:
+            # Update: PK readonly
+            self.fields['lead_id'].disabled = True
+            self.fields['lead_id'].help_text = 'Chiave primaria: non modificabile.'
+
+        # Pre-popola valore_stimato_input da Decimal field reale
+        if instance is not None and instance.valore_stimato is not None:
+            self.initial['valore_stimato_input'] = str(instance.valore_stimato)
+
+        # Normalizza choices legacy case-insensitive
+        if instance is not None:
+            for f, vals in (
+                ('fase_attuale', ch.LEAD_FASE_VALUES),
+                ('stato_lead', ch.LEAD_STATO_VALUES),
+                ('stato_contratto', ch.LEAD_CONTRATTO_VALUES),
+                ('priorita', ch.LEAD_PRIORITA_VALUES),
+            ):
+                self.initial[f] = ch.normalize_to_choice(getattr(instance, f, None), vals)
+
+    def clean_lead_id(self):
+        # In edit: forza valore originale (preserva PK contro tamper client-side)
+        if self.instance and self.instance.lead_id:
+            return self.instance.lead_id
+        return (self.cleaned_data.get('lead_id') or '').strip()
+
+    def clean_azienda(self):
+        v = (self.cleaned_data.get('azienda') or '').strip()
+        if not v:
+            raise forms.ValidationError("L'azienda è obbligatoria.")
+        return v
+
+    def clean_probabilita(self):
+        v = self.cleaned_data.get('probabilita')
+        if v in (None, ''):
+            return None
+        try:
+            n = int(v)
+        except (TypeError, ValueError):
+            raise forms.ValidationError('La probabilità deve essere un numero intero 0-100.')
+        if not (0 <= n <= 100):
+            raise forms.ValidationError('La probabilità deve essere tra 0 e 100.')
+        return n
+
+    def clean_email_referente(self):
+        v = (self.cleaned_data.get('email_referente') or '').strip().lower()
+        return v or None
+
+    def clean_valore_stimato_input(self):
+        raw = self.cleaned_data.get('valore_stimato_input')
+        if raw in (None, ''):
+            return None
+        text = str(raw).strip()
+        text = re.sub(r'[^\d.,-]', '', text)
+        if ',' in text and '.' in text:
+            text = text.replace('.', '').replace(',', '.')
+        elif ',' in text:
+            text = text.replace(',', '.')
+        try:
+            return Decimal(text)
+        except InvalidOperation:
+            raise forms.ValidationError('Inserisci un numero valido (es: 880 o 1.234,56).')
+
+    def save(self, commit=True):
+        """
+        Override save per:
+        - Auto-generare lead_id in create (formato LEAD-YYYYMMDD-HHMMSS-N)
+        - Concatenare nome+cognome in `referente` se non fornito
+        - Mappare valore_stimato_input → valore_stimato Decimal
+        """
+        instance = super().save(commit=False)
+
+        # Auto-gen PK in create
+        if not (instance.lead_id or '').strip():
+            from random import randint
+            now = datetime.now()
+            instance.lead_id = (
+                f"LEAD-{now.strftime('%Y%m%d-%H%M%S')}-{randint(1, 99)}"
+            )
+
+        # Mappa valore_stimato Decimal
+        valore = self.cleaned_data.get('valore_stimato_input')
+        if valore is not None:
+            instance.valore_stimato = valore
+
+        # Auto-concatena referente se mancante
+        if not (instance.referente or '').strip():
+            parts = [instance.nome_referente, instance.cognome_referente]
+            joined = ' '.join(p for p in parts if p and p.strip())
+            if joined:
+                instance.referente = joined
+
+        if commit:
+            instance.save()
+        return instance
 
 
 class CaseInsensitivePasswordResetForm(PasswordResetForm):

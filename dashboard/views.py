@@ -17,6 +17,7 @@ from .forms import (
     LeadPartnershipForm,
     NonFinalizzataForm,
     ProgettoForm,
+    LeadForm,
 )
 from . import choices as ch
 
@@ -418,6 +419,51 @@ def leads(request):
         "stati": ch.LEAD_STATO_VALUES,
         "is_editor": is_editor(request.user),
     })
+
+
+# ============================================================
+# LEAD CRUD (Editor-only)
+# ============================================================
+@user_passes_test(is_editor)
+def lead_create(request):
+    if request.method == 'POST':
+        form = LeadForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Lead creata con successo!")
+            return redirect('leads')
+    else:
+        form = LeadForm()
+    return render(request, 'dashboard/lead_form.html', {
+        'form': form, 'azione': 'Nuova',
+    })
+
+
+@user_passes_test(is_editor)
+def lead_update(request, pk):
+    lead = get_object_or_404(Lead, lead_id=pk)
+    if request.method == 'POST':
+        form = LeadForm(request.POST, instance=lead)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Lead aggiornata con successo!")
+            return redirect('leads')
+    else:
+        form = LeadForm(instance=lead)
+    return render(request, 'dashboard/lead_form.html', {
+        'form': form, 'azione': 'Modifica', 'lead': lead,
+    })
+
+
+@user_passes_test(is_editor)
+def lead_delete(request, pk):
+    lead = get_object_or_404(Lead, lead_id=pk)
+    if request.method == 'POST':
+        lead.delete()
+        messages.success(request, "Lead eliminata con successo!")
+        return redirect('leads')
+    return render(request, 'dashboard/lead_confirm_delete.html', {'lead': lead})
+
 
 # Sort map per Partnership (tab "partnership")
 PARTNERSHIP_SORT_MAP = {

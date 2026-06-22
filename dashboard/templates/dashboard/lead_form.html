@@ -1,0 +1,238 @@
+{% extends "dashboard/base_figma.html" %}
+{% load static %}
+
+{% block title %}JESAP Gestionale - {{ azione }} Lead{% endblock %}
+
+{% block content %}
+  <style>
+    .form-container { max-width: 920px; margin: 0 auto; padding: 24px; }
+    .form-container h1 { margin: 0 0 6px; font-size: 22px; }
+    .form-container .subtitle { color: #64748B; font-size: 14px; margin-bottom: 24px; }
+
+    .form-section {
+      background: #fff; border: 1px solid #E5E7EB; border-radius: 10px;
+      padding: 20px 24px; margin-bottom: 16px;
+    }
+    .form-section h3 { margin: 0 0 16px; font-size: 14px; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px 18px;
+    }
+    .form-grid .form-field.full { grid-column: 1 / -1; }
+    .form-field label { display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 4px; }
+    .form-field .form-control {
+      width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 14px;
+      box-sizing: border-box;
+    }
+    .form-field .form-control:focus { outline: none; border-color: #6366F1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .form-field .helptext { font-size: 12px; color: #94A3B8; margin-top: 4px; }
+    .form-field .errorlist { color: #DC2626; font-size: 13px; margin: 4px 0 0; padding-left: 18px; }
+
+    .form-actions {
+      display: flex; gap: 10px; justify-content: flex-end; padding: 16px 0;
+    }
+    .btn-primary, .btn-secondary {
+      padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px;
+      text-decoration: none; cursor: pointer; border: 1px solid transparent;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary { background: #6366F1; color: #fff; }
+    .btn-primary:hover { background: #4F46E5; }
+    .btn-secondary { background: #fff; color: #0F172A; border-color: #E5E7EB; }
+    .btn-secondary:hover { background: #F8FAFC; }
+  </style>
+
+  <div class="form-container">
+
+    <h1>{{ azione }} Lead</h1>
+    <p class="subtitle">
+      {% if azione == 'Nuova' %}
+        Registra una nuova opportunità BD. Il Lead ID viene generato automaticamente.
+      {% else %}
+        Modifica i dati della lead <code>{{ lead.lead_id }}</code>.
+        I campi <em>valore ponderato</em>, <em>alert follow-up</em> e
+        <em>storico aggiornamenti</em> sono gestiti automaticamente.
+      {% endif %}
+    </p>
+
+    {% if form.non_field_errors %}
+      <div class="form-section" style="border-color:#FCA5A5; background:#FEF2F2;">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if lead %}
+        <div class="form-section">
+          <h3>Lead ID</h3>
+          <div class="form-field full">
+            {{ form.lead_id }}
+            {% if form.lead_id.errors %}{{ form.lead_id.errors }}{% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- ANAGRAFICA -->
+      <div class="form-section">
+        <h3>Anagrafica azienda</h3>
+        <div class="form-grid">
+          <div class="form-field full">
+            <label for="{{ form.azienda.id_for_label }}">{{ form.azienda.label }} *</label>
+            {{ form.azienda }}
+            {% if form.azienda.errors %}{{ form.azienda.errors }}{% endif %}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.titolare_azienda.id_for_label }}">{{ form.titolare_azienda.label }}</label>
+            {{ form.titolare_azienda }}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.data_primo_contatto.id_for_label }}">{{ form.data_primo_contatto.label }}</label>
+            {{ form.data_primo_contatto }}
+          </div>
+        </div>
+      </div>
+
+      <!-- REFERENTE -->
+      <div class="form-section">
+        <h3>Referente</h3>
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="{{ form.nome_referente.id_for_label }}">{{ form.nome_referente.label }}</label>
+            {{ form.nome_referente }}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.cognome_referente.id_for_label }}">{{ form.cognome_referente.label }}</label>
+            {{ form.cognome_referente }}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.referente.id_for_label }}">{{ form.referente.label }}</label>
+            {{ form.referente }}
+            <div class="helptext">Auto-popolato da Nome + Cognome se vuoto.</div>
+          </div>
+          <div class="form-field">
+            <label for="{{ form.email_referente.id_for_label }}">{{ form.email_referente.label }}</label>
+            {{ form.email_referente }}
+            {% if form.email_referente.errors %}{{ form.email_referente.errors }}{% endif %}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.telefono.id_for_label }}">{{ form.telefono.label }}</label>
+            {{ form.telefono }}
+          </div>
+        </div>
+      </div>
+
+      <!-- BUSINESS -->
+      <div class="form-section">
+        <h3>Business</h3>
+        <div class="form-grid">
+          <div class="form-field full">
+            <label for="{{ form.prodotto_servizio.id_for_label }}">{{ form.prodotto_servizio.label }}</label>
+            {{ form.prodotto_servizio }}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.area.id_for_label }}">{{ form.area.label }}</label>
+            {{ form.area }}
+            <div class="helptext">CSV per multi-area (es. "M&C, HR").</div>
+          </div>
+          <div class="form-field">
+            <label for="{{ form.owner.id_for_label }}">{{ form.owner.label }}</label>
+            {{ form.owner }}
+          </div>
+        </div>
+      </div>
+
+      <!-- PIPELINE / STATUS -->
+      <div class="form-section">
+        <h3>Pipeline & status</h3>
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="{{ form.fase_attuale.id_for_label }}">{{ form.fase_attuale.label }}</label>
+            {{ form.fase_attuale }}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.stato_lead.id_for_label }}">{{ form.stato_lead.label }}</label>
+            {{ form.stato_lead }}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.stato_contratto.id_for_label }}">{{ form.stato_contratto.label }}</label>
+            {{ form.stato_contratto }}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.priorita.id_for_label }}">{{ form.priorita.label }}</label>
+            {{ form.priorita }}
+          </div>
+        </div>
+      </div>
+
+      <!-- FORECASTING -->
+      <div class="form-section">
+        <h3>Forecasting</h3>
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="{{ form.valore_stimato_input.id_for_label }}">{{ form.valore_stimato_input.label }}</label>
+            {{ form.valore_stimato_input }}
+            <div class="helptext">{{ form.valore_stimato_input.help_text }}</div>
+            {% if form.valore_stimato_input.errors %}{{ form.valore_stimato_input.errors }}{% endif %}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.probabilita.id_for_label }}">{{ form.probabilita.label }}</label>
+            {{ form.probabilita }}
+            <div class="helptext">Es: 30 = 30%</div>
+            {% if form.probabilita.errors %}{{ form.probabilita.errors }}{% endif %}
+          </div>
+          {% if lead and lead.valore_ponderato %}
+            <div class="form-field">
+              <label>Valore ponderato (calcolato)</label>
+              <input class="form-control" value="€ {{ lead.valore_ponderato|floatformat:2 }}" readonly disabled
+                     style="background:#F1F5F9; color:#475569;">
+              <div class="helptext">Auto: valore stimato × probabilità / 100</div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- PROSSIMA AZIONE -->
+      <div class="form-section">
+        <h3>Prossima azione</h3>
+        <div class="form-grid">
+          <div class="form-field full">
+            <label for="{{ form.prossima_azione.id_for_label }}">{{ form.prossima_azione.label }}</label>
+            {{ form.prossima_azione }}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.data_prossima_azione.id_for_label }}">{{ form.data_prossima_azione.label }}</label>
+            {{ form.data_prossima_azione }}
+          </div>
+        </div>
+      </div>
+
+      <!-- DRIVE -->
+      <div class="form-section">
+        <h3>Google Drive</h3>
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="{{ form.drive_folder_id.id_for_label }}">{{ form.drive_folder_id.label }}</label>
+            {{ form.drive_folder_id }}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.link_cartella_drive.id_for_label }}">{{ form.link_cartella_drive.label }}</label>
+            {{ form.link_cartella_drive }}
+          </div>
+        </div>
+      </div>
+
+      <!-- AZIONI -->
+      <div class="form-actions">
+        <a href="{% url 'leads' %}" class="btn-secondary">Annulla</a>
+        <button type="submit" class="btn-primary">
+          {% if azione == 'Nuova' %}Crea lead{% else %}Salva modifiche{% endif %}
+        </button>
+      </div>
+    </form>
+
+  </div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "dashboard/base_figma.html" %}
+{% load static %}
+
+{% block title %}Elimina Lead{% endblock %}
+
+{% block content %}
+  <style>
+    .delete-container { max-width: 540px; margin: 60px auto; padding: 28px;
+      background: #fff; border: 1px solid #FCA5A5; border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+    .delete-container h1 { margin: 0 0 12px; font-size: 22px; color: #B91C1C; }
+    .delete-container p { color: #475569; font-size: 14px; line-height: 1.5; }
+    .lead-summary { background: #FEF2F2; border: 1px solid #FCA5A5; border-radius: 8px;
+      padding: 14px 18px; margin: 20px 0; }
+    .lead-summary div { font-size: 13px; color: #475569; margin: 4px 0; }
+    .lead-summary strong { color: #0F172A; }
+    .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+    .btn-danger { background: #DC2626; color: #fff; padding: 10px 20px; border: none; border-radius: 8px;
+      font-weight: 600; font-size: 14px; cursor: pointer; }
+    .btn-danger:hover { background: #B91C1C; }
+    .btn-secondary { background: #fff; color: #0F172A; padding: 10px 20px; border: 1px solid #E5E7EB;
+      border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; }
+  </style>
+
+  <div class="delete-container">
+    <h1>⚠️ Eliminare questa lead?</h1>
+    <p>
+      Stai per eliminare definitivamente la lead. Questa azione <strong>non può essere annullata</strong>
+      dal CRM. Sarà comunque presente nello storico del Google Sheet finché non lo elimini da lì.
+    </p>
+
+    <div class="lead-summary">
+      <div><strong>Lead ID:</strong> <code>{{ lead.lead_id }}</code></div>
+      <div><strong>Azienda:</strong> {{ lead.azienda }}</div>
+      <div><strong>Referente:</strong> {{ lead.referente_full|default:"-" }}</div>
+      <div><strong>Fase attuale:</strong> {{ lead.fase_attuale|default:"-" }}</div>
+      <div><strong>Stato:</strong> {{ lead.stato_lead|default:"-" }}</div>
+      {% if lead.valore_stimato %}
+        <div><strong>Valore stimato:</strong> € {{ lead.valore_stimato|floatformat:2 }}</div>
+      {% endif %}
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="actions">
+        <a href="{% url 'leads' %}" class="btn-secondary">Annulla</a>
+        <button type="submit" class="btn-danger">Sì, elimina definitivamente</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}
